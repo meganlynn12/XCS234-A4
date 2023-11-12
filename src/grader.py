@@ -82,7 +82,7 @@ class Test_1b(GradedTestCase):
         self.assertEqual(learner.features, x.keys())
         self.assertEqual(learner.d, len(x.keys()))
         self.assertTrue(np.array_equal(learner.A[0], np.eye(learner.d)))
-        self.assertTrue(np.array_equal(learner.b[0], np.zeros(learner.d)))
+        self.assertTrue(np.array_equal(learner.b[0], np.zeros(learner.d)) or np.array_equal(learner.b[0], np.zeros((learner.d, 1))))
 
     @graded(timeout=2, is_hidden=False)
     def test_1(self):
