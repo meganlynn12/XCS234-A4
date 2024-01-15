@@ -281,13 +281,13 @@ class ThomSampB(BanditPolicy):
         """
 
         ### START CODE HERE ###
-        self.n_arms
-        self.features
-        self.d
+        self.n_arms = n_arms
+        self.features = features
+        self.d = len(features)
         self.v2 = alpha
-        self.B
-        self.mu
-        self.f
+        self.B = {arm: np.identity(self.d) for arm in range(self.n_arms)}
+        self.mu = {arm: np.zeros(self.d) for arm in range(self.n_arms)}
+        self.f = {arm: np.zeros(self.d) for arm in range(self.n_arms)}
         ### END CODE HERE ###
 
     def choose(self, x):
@@ -306,6 +306,18 @@ class ThomSampB(BanditPolicy):
         """
         xvec = np.array([x[f] for f in self.features])
         ### START CODE HERE ###
+        all_arms = ['low', 'medium', 'high']
+        payoff = {}
+        for arm in range(self.n_arms):
+            # sample mu using multivariate_normal
+            B_inv = np.linalg.inv(self.B[arm])
+            sample_mu = np.random.multivariate_normal(self.mu[arm], self.v2 * B_inv)
+            # compute payoff
+            payoff[arm] = xvec.T.dot(sample_mu)#np.dot(sample_mu, xvec)
+
+        # choose arm
+        a_star = np.argmax(list(payoff.values()))
+        return all_arms[a_star]
         ### END CODE HERE ###
 
     def update(self, x, a, r):
@@ -326,4 +338,8 @@ class ThomSampB(BanditPolicy):
         """
         xvec = np.array([x[f] for f in self.features])
         ### START CODE HERE ###
+        arm_to_update = {'low':0, 'medium':1, 'high':2}[a]
+        self.B[arm_to_update] += np.outer(xvec, xvec)
+        self.f[arm_to_update] += xvec * r #r * xvec
+        self.mu[arm_to_update] = np.linalg.inv(self.B[arm_to_update]).dot(self.f[arm_to_update])
         ### END CODE HERE ###
