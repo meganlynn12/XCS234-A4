@@ -52,6 +52,7 @@ class FixedDosePolicy(StaticPolicy):
                   to all patients.
         """
         ### START CODE HERE ###
+        return 'medium'
         ### END CODE HERE ###
 
 
@@ -80,6 +81,25 @@ class ClinicalDosingPolicy(StaticPolicy):
         age_in_decades = x["Age in decades"]
 
         ### START CODE HERE ###
+        height = x["Height (cm)"]
+        weight = x["Weight (kg)"]
+        asian = x["Asian"]
+        black = x["Black"]
+        missing = x["Unknown race"]
+        enzyme = max([x['Carbamazepine (Tegretol)'],x['Phenytoin (Dilantin)'],x['Rifampin or Rifampicin']])
+        amiodarone = x['Amiodarone (Cordarone)']
+
+        val = (   4.0376
+                - 0.2546 * age_in_decades
+                + 0.0118 * height
+                + 0.0134 * weight
+                - 0.6752 * asian
+                + 0.4060 * black 
+                + 0.0443 * missing
+                + 1.2799 * enzyme
+                - 0.5695 * amiodarone
+               ) ** 2 
+        return dose_class(val)
         ### END CODE HERE ###
 
 
@@ -113,6 +133,13 @@ class LinUCB(BanditPolicy):
                 Keep track of a seperate A, b for each action (this is what the Disjoint in the algorithm name means)
         """
         ### START CODE HERE ###
+        self.n_arms = n_arms
+        self.features = features
+        self.d = len(features)
+        self.alpha = alpha
+        # lines 5-6 Alg 1 in paper
+        self.A = {arm: np.identity(self.d) for arm in range(self.n_arms)}
+        self.b = {arm: np.zeros(self.d) for arm in range(self.n_arms)}
         ### END CODE HERE ###
 
     def choose(self, x):
@@ -130,6 +157,17 @@ class LinUCB(BanditPolicy):
         """
         xvec = np.array([x[f] for f in self.features])
         ### START CODE HERE ###
+        all_arms = ['low', 'medium', 'high']
+        # lines 8-9 Alg 1 in paper
+        p = {}
+        for arm in range(self.n_arms):
+            A_inv = np.linalg.inv(self.A[arm])
+            Theta_hat = A_inv.dot(self.b[arm])
+            p[arm] = Theta_hat.T.dot(xvec) + self.alpha * np.sqrt(xvec.T.dot(A_inv).dot(xvec))
+
+        # line 11 Alg 1 in paper
+        a_star = np.argmax(list(p.values()))
+        return all_arms[a_star]
         ### END CODE HERE ###
 
     def update(self, x, a, r):
@@ -150,6 +188,10 @@ class LinUCB(BanditPolicy):
         """
         xvec = np.array([x[f] for f in self.features])
         ### START CODE HERE ###
+        # lines 12-13 Alg 1 in paper
+        arm_to_update = {'low':0, 'medium':1, 'high':2}[a]
+        self.A[arm_to_update] += np.outer(xvec, xvec)
+        self.b[arm_to_update] += r * xvec
         ### END CODE HERE ###
 
 
@@ -180,6 +222,23 @@ class eGreedyLinB(LinUCB):
         epsilon = float(1.0 / self.time) * self.alpha
         xvec = np.array([x[f] for f in self.features])
         ### START CODE HERE ###
+        all_arms = ['low', 'medium', 'high']
+        payoff = {}
+        # payoff = simple dot product between Theta & the input features
+        for arm in range(self.n_arms):
+            A_inv = np.linalg.inv(self.A[arm])
+            Theta_hat = A_inv.dot(self.b[arm])
+            payoff[arm] = Theta_hat.dot(xvec)
+
+        # epsilon greedy algorithm to choose the action
+        if np.random.uniform() < epsilon:
+            # explore
+            a_star = np.random.choice(self.n_arms)
+        else:
+            # exploit
+            a_star = np.argmax(list(payoff.values()))
+
+        return all_arms[a_star]
         ### END CODE HERE ###
 
 
@@ -222,6 +281,13 @@ class ThomSampB(BanditPolicy):
         """
 
         ### START CODE HERE ###
+        self.n_arms
+        self.features
+        self.d
+        self.v2 = alpha
+        self.B
+        self.mu
+        self.f
         ### END CODE HERE ###
 
     def choose(self, x):
